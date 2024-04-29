@@ -1,0 +1,3 @@
+[submodule "books_tracker/smart-contracts/lib/forge-std"]
+	path = books_tracker/smart-contracts/lib/forge-std
+	url = https://github.com/foundry-rs/forge-std
