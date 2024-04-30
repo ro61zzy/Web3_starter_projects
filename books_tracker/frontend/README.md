@@ -1,5 +1,6 @@
-Simple book tracker interface
-foundry, ethers-js and nextjs
+Simple book tracker interface - FROTEND
+ethers-js and nextjs
+- Working with Ethers-JS
 
 - Wallet Connect
 - Reading from blockchain
