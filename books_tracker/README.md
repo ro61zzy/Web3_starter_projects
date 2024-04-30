@@ -1,4 +1,4 @@
 Next-js
 Solidity
-Ethers
+Ethers-Js
 Foundry
