@@ -1,6 +1,8 @@
-Simple book tracker interface - FROTEND
-ethers-js and nextjs
+*Simple book tracker interface - FRONTEND*
+
+
 - Working with Ethers-JS
+- ethers-js and nextjs
 
 - Wallet Connect
 - Reading from blockchain
