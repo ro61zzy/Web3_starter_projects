@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import { Inter } from "next/font/google";
 import { Box, Button, TextField, Typography } from "@mui/material";
-import { Editor } from "react-draft-wysiwyg";
-import "react-draft-wysiwyg/dist/react-draft-wysiwyg.css";
+import { ethers } from "ethers";
+
 
 const inter = Inter({ subsets: ["latin"] });
 
