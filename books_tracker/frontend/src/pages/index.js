@@ -3,30 +3,62 @@ import { Box, Button, TextField, Typography } from "@mui/material";
 import { ethers } from "ethers";
 import BooksTrackerABI from '../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json';
 
-
 const contractAddress = "0xAF2C06b422474A451C97F8953602b731693C232f";
-const provider = new ethers.providers.Web3Provider(window.ethereum);
-const signer = provider.getSigner();
-const booksTrackerContract = new ethers.Contract(contractAddress, BooksTrackerABI.abi, signer);
+let provider, signer, booksTrackerContract;
 
-// Example function to create a person
-async function createPerson(name, genres) {
-  const tx = await booksTrackerContract.createPerson(name, genres);
-  await tx.wait();
-  console.log('Person created:', tx);
-}
-
-// Example function to get books read by a person
-async function getBooksReadByPerson(person) {
-  const books = await booksTrackerContract.getBooksReadByPerson(person);
-  console.log('Books read by person:', books);
+if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
+  provider = new ethers.providers.Web3Provider(window.ethereum);
+  signer = provider.getSigner();
+  booksTrackerContract = new ethers.Contract(contractAddress, BooksTrackerABI.abi, signer);
 }
 
 export default function Home() {
-  const [editorState, setEditorState] = useState(null);
+  const [user, setUser] = useState("");
+  const [personName, setPersonName] = useState("");
+  const [personGenres, setPersonGenres] = useState("");
+  const [bookTitle, setBookTitle] = useState("");
+  const [bookAuthor, setBookAuthor] = useState("");
+  const [bookPerson, setBookPerson] = useState("");
+  const [booksRead, setBooksRead] = useState([]);
+  const [walletConnected, setWalletConnected] = useState(false);
 
-  const onEditorStateChange = (newEditorState) => {
-    setEditorState(newEditorState);
+  const connectWallet = async () => {
+    try {
+      await provider.send("eth_requestAccounts", []);
+      setWalletConnected(true);
+    } catch (err) {
+      console.error("Failed to connect wallet", err);
+    }
+  };
+
+  const handleCreatePerson = async () => {
+    try {
+      const tx = await booksTrackerContract.createPerson(personName, parseInt(personGenres));
+      await tx.wait();
+      console.log('Person created:', tx);
+    } catch (err) {
+      console.error("Failed to create person", err);
+    }
+  };
+
+  const handleCreateBook = async () => {
+    try {
+      const tx = await booksTrackerContract.createBook(bookTitle, bookAuthor, bookPerson);
+      await tx.wait();
+      console.log('Book created:', tx);
+    } catch (err) {
+      console.error("Failed to create book", err);
+    }
+  };
+
+  const handleGetBooksReadByPerson = async () => {
+    try {
+      const books = await booksTrackerContract.getBooksReadByPerson(user);
+      setBooksRead(books);
+      console.log('Books read by person:', books);
+    } catch (err) {
+      console.error("Failed to get books read by person", err);
+    }
   };
 
   return (
@@ -40,15 +72,16 @@ export default function Home() {
         }}
       >
         <Button
+          onClick={connectWallet}
           sx={{
             p: "10px",
-            backgroundColor: "#0681bd",
+            backgroundColor: walletConnected ? "#4caf50" : "#0681bd",
             color: "#fff",
             borderRadius: "5px",
             fontSize: "10px",
           }}
         >
-          Connect Wallet
+          {walletConnected ? "Wallet Connected" : "Connect Wallet"}
         </Button>
       </Box>
       <Box
@@ -56,9 +89,6 @@ export default function Home() {
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
-          // width: "100%",
-          // p:"1rem",
-          // backgroundColor:"red"
         }}
       >
         <Box
@@ -100,7 +130,6 @@ export default function Home() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            // height: "100vh",
             flexDirection: "column",
             width: "38%",
           }}
@@ -116,8 +145,6 @@ export default function Home() {
               justifyContent: "space-between",
               backgroundColor: "#204d63",
               p: "3rem",
-              // width: "38%",
-              // gap: "14px",
             }}
           >
             <Box
@@ -133,10 +160,11 @@ export default function Home() {
                 Readers
               </Typography>
               <Typography>Name</Typography>
-              <TextField />
-              <Typography>Age</Typography>
-              <TextField />
+              <TextField value={personName} onChange={(e) => setPersonName(e.target.value)} />
+              <Typography>Genres</Typography>
+              <TextField value={personGenres} onChange={(e) => setPersonGenres(e.target.value)} />
               <Button
+                onClick={handleCreatePerson}
                 sx={{
                   backgroundColor: "#0681bd",
                   p: "8px",
@@ -160,10 +188,13 @@ export default function Home() {
                 Books
               </Typography>
               <Typography>Title</Typography>
-              <TextField />
+              <TextField value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} />
               <Typography>Author</Typography>
-              <TextField />
+              <TextField value={bookAuthor} onChange={(e) => setBookAuthor(e.target.value)} />
+              <Typography>Person</Typography>
+              <TextField value={bookPerson} onChange={(e) => setBookPerson(e.target.value)} />
               <Button
+                onClick={handleCreateBook}
                 sx={{
                   backgroundColor: "#0681bd",
                   p: "8px",
@@ -181,7 +212,6 @@ export default function Home() {
             display: "flex",
             alignItems: "center",
             justifyContent: "center",
-            // height: "100vh",
             width: "20%",
             flexDirection: "column",
           }}
@@ -221,20 +251,18 @@ export default function Home() {
         <Box
           sx={{
             display: "flex",
-            // alignItems: "center",
-            // justifyContent: "center",
             width: "60%",
-            // backgroundColor: "red",
             height: "300px",
             flexDirection: "column",
           }}
         >
           <Typography sx={{ fontSize: "28px" }}>Susan Sunan</Typography>
           <Typography sx={{ fontSize: "20px" }}>Books Read:</Typography>
-          <Typography>book 1</Typography>
-          <Typography>book 2</Typography>
-          <Typography>book 3</Typography>
-          <Typography>book 4</Typography>
+          <TextField value={user} onChange={(e) => setUser(e.target.value)} placeholder="Enter user name" />
+          <Button onClick={handleGetBooksReadByPerson} sx={{ backgroundColor: "#0681bd", p: "8px", color: "#fff", mt: "8px" }}>Get Books</Button>
+          {booksRead.map((book, index) => (
+            <Typography key={index}>{book}</Typography>
+          ))}
         </Box>
       </Box>
     </Box>
