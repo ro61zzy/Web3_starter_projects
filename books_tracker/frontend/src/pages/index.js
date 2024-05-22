@@ -1,10 +1,26 @@
 import React, { useState } from "react";
-import { Inter } from "next/font/google";
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { ethers } from "ethers";
+import BooksTrackerABI from '../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json';
 
 
-const inter = Inter({ subsets: ["latin"] });
+const contractAddress = "0xAF2C06b422474A451C97F8953602b731693C232f";
+const provider = new ethers.providers.Web3Provider(window.ethereum);
+const signer = provider.getSigner();
+const booksTrackerContract = new ethers.Contract(contractAddress, BooksTrackerABI.abi, signer);
+
+// Example function to create a person
+async function createPerson(name, genres) {
+  const tx = await booksTrackerContract.createPerson(name, genres);
+  await tx.wait();
+  console.log('Person created:', tx);
+}
+
+// Example function to get books read by a person
+async function getBooksReadByPerson(person) {
+  const books = await booksTrackerContract.getBooksReadByPerson(person);
+  console.log('Books read by person:', books);
+}
 
 export default function Home() {
   const [editorState, setEditorState] = useState(null);
