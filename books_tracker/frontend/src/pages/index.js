@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Box, Button, TextField, Typography } from "@mui/material";
 import { ethers } from "ethers";
-import BooksTrackerABI from '../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json';
+import BooksTrackerABI from "../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json";
 
 const contractAddress = "0xAF2C06b422474A451C97F8953602b731693C232f";
 
@@ -13,61 +13,85 @@ export default function Home() {
   const [bookAuthor, setBookAuthor] = useState("");
   const [bookPerson, setBookPerson] = useState("");
   const [booksRead, setBooksRead] = useState([]);
-  const [walletConnected, setWalletConnected] = useState(false);
+  const [connected, setConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState("");
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [booksTrackerContract, setBooksTrackerContract] = useState(null);
 
-  // Function to connect to MetaMask
-  const connectWallet = async () => {
-    if (!window.ethereum) {
-      console.error("No web3 provider found. Please install MetaMask.");
-      return;
-    }
-    
-    try {
-      const newProvider = new ethers.providers.Web3Provider(window.ethereum);
-      await newProvider.send("eth_requestAccounts", []);
-      const newSigner = newProvider.getSigner();
-      const newContract = new ethers.Contract(contractAddress, BooksTrackerABI.abi, newSigner);
-      setProvider(newProvider);
-      setSigner(newSigner);
-      setBooksTrackerContract(newContract);
-      setWalletConnected(true);
-    } catch (err) {
-      console.error("Failed to connect wallet", err);
-    }
-  };
-  
+  // Function to connect/disconnect the wallet
+  async function connectWallet() {
+    if (!connected) {
+      if (!window.ethereum) {
+        console.error("MetaMask is not installed.");
+        return;
+      }
+      try {
+        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        await newProvider.send("eth_requestAccounts", []);
+        const newSigner = newProvider.getSigner();
+        const newContract = new ethers.Contract(
+          contractAddress,
+          BooksTrackerABI.abi,
+          newSigner
+        );
+        const _walletAddress = await newSigner.getAddress();
 
+        setProvider(newProvider);
+        setSigner(newSigner);
+        setBooksTrackerContract(newContract);
+        setConnected(true);
+        setWalletAddress(_walletAddress);
+      } catch (err) {
+        console.error("Failed to connect wallet", err);
+      }
+    } else {
+      setConnected(false);
+      setWalletAddress("");
+      setProvider(null);
+      setSigner(null);
+      setBooksTrackerContract(null);
+    }
+  }
+
+  // Function to create a person
   const handleCreatePerson = async () => {
     if (!booksTrackerContract) return;
     try {
-      const tx = await booksTrackerContract.createPerson(personName, parseInt(personGenres));
+      const tx = await booksTrackerContract.createPerson(
+        personName,
+        parseInt(personGenres)
+      );
       await tx.wait();
-      console.log('Person created:', tx);
+      console.log("Person created:", tx);
     } catch (err) {
       console.error("Failed to create person", err);
     }
   };
 
+  // Function to create a book
   const handleCreateBook = async () => {
     if (!booksTrackerContract) return;
     try {
-      const tx = await booksTrackerContract.createBook(bookTitle, bookAuthor, bookPerson);
+      const tx = await booksTrackerContract.createBook(
+        bookTitle,
+        bookAuthor,
+        bookPerson
+      );
       await tx.wait();
-      console.log('Book created:', tx);
+      console.log("Book created:", tx);
     } catch (err) {
       console.error("Failed to create book", err);
     }
   };
 
+  // Function to get books read by a person
   const handleGetBooksReadByPerson = async () => {
     if (!booksTrackerContract) return;
     try {
       const books = await booksTrackerContract.getBooksReadByPerson(user);
       setBooksRead(books);
-      console.log('Books read by person:', books);
+      console.log("Books read by person:", books);
     } catch (err) {
       console.error("Failed to get books read by person", err);
     }
@@ -87,15 +111,19 @@ export default function Home() {
           onClick={connectWallet}
           sx={{
             p: "10px",
-            backgroundColor: walletConnected ? "#4caf50" : "#0681bd",
+            backgroundColor: connected ? "#4caf50" : "#0681bd",
             color: "#fff",
             borderRadius: "5px",
             fontSize: "10px",
+            "&:hover": {
+              backgroundColor: connected ? "#45a049" : "#056b9a",
+            },
           }}
         >
-          {walletConnected ? "Wallet Connected" : "Connect Wallet"}
+          {connected ? "Wallet Connected" : "Connect Wallet"}
         </Button>
       </Box>
+
       <Box
         sx={{
           display: "flex",
@@ -137,6 +165,7 @@ export default function Home() {
             <Typography>user 4</Typography>
           </Box>
         </Box>
+
         <Box
           sx={{
             display: "flex",
@@ -172,9 +201,15 @@ export default function Home() {
                 Readers
               </Typography>
               <Typography>Name</Typography>
-              <TextField value={personName} onChange={(e) => setPersonName(e.target.value)} />
+              <TextField
+                value={personName}
+                onChange={(e) => setPersonName(e.target.value)}
+              />
               <Typography>Genres</Typography>
-              <TextField value={personGenres} onChange={(e) => setPersonGenres(e.target.value)} />
+              <TextField
+                value={personGenres}
+                onChange={(e) => setPersonGenres(e.target.value)}
+              />
               <Button
                 onClick={handleCreatePerson}
                 sx={{
@@ -187,6 +222,7 @@ export default function Home() {
                 Add
               </Button>
             </Box>
+
             <Box
               sx={{
                 display: "flex",
@@ -200,11 +236,20 @@ export default function Home() {
                 Books
               </Typography>
               <Typography>Title</Typography>
-              <TextField value={bookTitle} onChange={(e) => setBookTitle(e.target.value)} />
+              <TextField
+                value={bookTitle}
+                onChange={(e) => setBookTitle(e.target.value)}
+              />
               <Typography>Author</Typography>
-              <TextField value={bookAuthor} onChange={(e) => setBookAuthor(e.target.value)} />
+              <TextField
+                value={bookAuthor}
+                onChange={(e) => setBookAuthor(e.target.value)}
+              />
               <Typography>Person</Typography>
-              <TextField value={bookPerson} onChange={(e) => setBookPerson(e.target.value)} />
+              <TextField
+                value={bookPerson}
+                onChange={(e) => setBookPerson(e.target.value)}
+              />
               <Button
                 onClick={handleCreateBook}
                 sx={{
@@ -219,6 +264,7 @@ export default function Home() {
             </Box>
           </Box>
         </Box>
+
         <Box
           sx={{
             display: "flex",
@@ -253,6 +299,7 @@ export default function Home() {
           </Box>
         </Box>
       </Box>
+
       <Box
         sx={{
           display: "flex",
@@ -270,8 +317,22 @@ export default function Home() {
         >
           <Typography sx={{ fontSize: "28px" }}>Susan Sunan</Typography>
           <Typography sx={{ fontSize: "20px" }}>Books Read:</Typography>
-          <TextField value={user} onChange={(e) => setUser(e.target.value)} placeholder="Enter user name" />
-          <Button onClick={handleGetBooksReadByPerson} sx={{ backgroundColor: "#0681bd", p: "8px", color: "#fff", mt: "8px" }}>Get Books</Button>
+          <TextField
+            value={user}
+            onChange={(e) => setUser(e.target.value)}
+            placeholder="Enter user name"
+          />
+          <Button
+            onClick={handleGetBooksReadByPerson}
+            sx={{
+              backgroundColor: "#0681bd",
+              p: "8px",
+              color: "#fff",
+              mt: "8px",
+            }}
+          >
+            Get Books
+          </Button>
           {booksRead.map((book, index) => (
             <Typography key={index}>{book}</Typography>
           ))}
