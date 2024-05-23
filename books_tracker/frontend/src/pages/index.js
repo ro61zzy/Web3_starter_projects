@@ -4,13 +4,6 @@ import { ethers } from "ethers";
 import BooksTrackerABI from '../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json';
 
 const contractAddress = "0xAF2C06b422474A451C97F8953602b731693C232f";
-let provider, signer, booksTrackerContract;
-
-if (typeof window !== "undefined" && typeof window.ethereum !== "undefined") {
-  provider = new ethers.providers.Web3Provider(window.ethereum);
-  signer = provider.getSigner();
-  booksTrackerContract = new ethers.Contract(contractAddress, BooksTrackerABI.abi, signer);
-}
 
 export default function Home() {
   const [user, setUser] = useState("");
@@ -21,17 +14,34 @@ export default function Home() {
   const [bookPerson, setBookPerson] = useState("");
   const [booksRead, setBooksRead] = useState([]);
   const [walletConnected, setWalletConnected] = useState(false);
+  const [provider, setProvider] = useState(null);
+  const [signer, setSigner] = useState(null);
+  const [booksTrackerContract, setBooksTrackerContract] = useState(null);
 
+  // Function to connect to MetaMask
   const connectWallet = async () => {
+    if (!window.ethereum) {
+      console.error("No web3 provider found. Please install MetaMask.");
+      return;
+    }
+    
     try {
-      await provider.send("eth_requestAccounts", []);
+      const newProvider = new ethers.providers.Web3Provider(window.ethereum);
+      await newProvider.send("eth_requestAccounts", []);
+      const newSigner = newProvider.getSigner();
+      const newContract = new ethers.Contract(contractAddress, BooksTrackerABI.abi, newSigner);
+      setProvider(newProvider);
+      setSigner(newSigner);
+      setBooksTrackerContract(newContract);
       setWalletConnected(true);
     } catch (err) {
       console.error("Failed to connect wallet", err);
     }
   };
+  
 
   const handleCreatePerson = async () => {
+    if (!booksTrackerContract) return;
     try {
       const tx = await booksTrackerContract.createPerson(personName, parseInt(personGenres));
       await tx.wait();
@@ -42,6 +52,7 @@ export default function Home() {
   };
 
   const handleCreateBook = async () => {
+    if (!booksTrackerContract) return;
     try {
       const tx = await booksTrackerContract.createBook(bookTitle, bookAuthor, bookPerson);
       await tx.wait();
@@ -52,6 +63,7 @@ export default function Home() {
   };
 
   const handleGetBooksReadByPerson = async () => {
+    if (!booksTrackerContract) return;
     try {
       const books = await booksTrackerContract.getBooksReadByPerson(user);
       setBooksRead(books);

@@ -42,8 +42,6 @@ contract BooksTracker {
         return booksRead[_person];
     }
 }
-//deploy to sepolia testnet
-//forge create --rpc-url https://eth-sepolia.g.alchemy.com/v2/wGg9QP9ItadT7QRQYBJ1FQCn1J8o-Ics --private-key 513caa5c7a2b593053d37bbadd3d1ec6bd72b5c32117320b73d5becffe87b03d  --etherscan-api-key DY79P3CJUSDW94ICN69KQU6MHDQJWHBX34 --verify src/BookTracker.sol:BookTracker  
 
 //deploy to sepolia testnet
 //contract address is 0xAF2C06b422474A451C97F8953602b731693C232f
