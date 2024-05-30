@@ -3,7 +3,7 @@ import { Box, Button, CircularProgress, TextField, Typography } from "@mui/mater
 import { ethers } from "ethers";
 import BooksTrackerABI from "../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json";
 
-const contractAddress = "0xF10b83EE26F2e0f0B68c40d5380a775846c0598D";
+const contractAddress = "0xf10b83ee26f2e0f0b68c40d5380a775846c0598d";
 
 export default function Home() {
   const [user, setUser] = useState("");
@@ -111,51 +111,43 @@ const handleCreatePerson = async () => {
     }
   };
 
-  async function fetchPersons() {
-    try {
-      // Get the contract instance
-      const contract = new ethers.Contract(contractAddress, BooksTrackerABI, provider);
-  
-      // Call the getListOfPeople function
-      const persons = await contract.getListOfPeople();
-  
-      return persons;
-    } catch (err) {
-      console.error("Failed to fetch persons", err);
-      return [];
-    }
-  }
-
-  async function fetchBooks() {
-    try {
-      // Get the contract instance
-      const contract = new ethers.Contract(contractAddress, BooksTrackerABI, provider);
-  
-      // Call the getListOfBooks function
-      const books = await contract.getListOfBooks();
-  
-      return books;
-    } catch (err) {
-      console.error("Failed to fetch books", err);
-      return [];
-    }
-  }
-  
-  useEffect(() => {
-    async function fetchData() {
-      // Fetch persons
-      // Example:
-      const personsData = await fetchPersons();
+// Fetch initial data
+useEffect(() => {
+  const fetchData = async () => {
+    if (booksTrackerContract) {
+      const personsData = await booksTrackerContract?.getListOfPeople();
+      console.log("wait wait Fetched persons:", personsData);
       setPersons(personsData);
-
-      // Fetch books
-      // Example:
-      const booksData = await fetchBooks();
+      const booksData = await booksTrackerContract?.getListOfBooks();
       setBooks(booksData);
     }
+  };
 
-    fetchData();
-  }, []);
+  fetchData();
+}, [booksTrackerContract]);
+
+// Listen for events
+useEffect(() => {
+  if (booksTrackerContract) {
+    const handlePersonCreated = (name, genres) => {
+      setPersons(prev => [...prev, { name, genres }]);
+    };
+
+    const handleBookCreated = (title, author) => {
+      setBooks(prev => [...prev, { title, author }]);
+    };
+
+    booksTrackerContract.on("PersonCreated", handlePersonCreated);
+    booksTrackerContract.on("BookCreated", handleBookCreated);
+
+    return () => {
+      booksTrackerContract.off("PersonCreated", handlePersonCreated);
+      booksTrackerContract.off("BookCreated", handleBookCreated);
+    };
+  }
+}, [booksTrackerContract]);
+
+
   return (
     <Box>
       <Box
