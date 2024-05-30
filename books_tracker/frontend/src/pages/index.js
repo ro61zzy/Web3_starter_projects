@@ -3,7 +3,7 @@ import { Box, Button, CircularProgress, TextField, Typography } from "@mui/mater
 import { ethers } from "ethers";
 import BooksTrackerABI from "../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json";
 
-const contractAddress = "0xa2f9935497B1928c6C47006e6dcE0C321F5F8ad9";
+const contractAddress = "0xF10b83EE26F2e0f0B68c40d5380a775846c0598D";
 
 export default function Home() {
   const [user, setUser] = useState("");
