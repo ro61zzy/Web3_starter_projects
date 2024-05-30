@@ -1,9 +1,9 @@
-import React, { useState } from "react";
-import { Box, Button, TextField, Typography } from "@mui/material";
+import React, { useEffect, useState } from "react";
+import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
 import { ethers } from "ethers";
 import BooksTrackerABI from "../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json";
 
-const contractAddress = "0xAF2C06b422474A451C97F8953602b731693C232f";
+const contractAddress = "0xa2f9935497B1928c6C47006e6dcE0C321F5F8ad9";
 
 export default function Home() {
   const [user, setUser] = useState("");
@@ -18,6 +18,12 @@ export default function Home() {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [booksTrackerContract, setBooksTrackerContract] = useState(null);
+  const [loadingCreatePerson, setLoadingCreatePerson] = useState(false);
+  const [loadingCreateBook, setLoadingCreateBook] = useState(false);
+  const [loadingGetBooks, setLoadingGetBooks] = useState(false);
+  const [persons, setPersons] = useState([]);
+  const [books, setBooks] = useState([]);
+
 
   // Function to connect/disconnect the wallet
   async function connectWallet() {
@@ -28,19 +34,20 @@ export default function Home() {
       }
       try {
         const newProvider = new ethers.BrowserProvider(window.ethereum);
-        await newProvider.send("eth_requestAccounts", []);
-        const newSigner = newProvider.getSigner();
+        await window.ethereum.request({ method: "eth_requestAccounts" });
+        const newSigner = await newProvider.getSigner();
+        const _walletAddress = await newSigner.getAddress();
+
         const newContract = new ethers.Contract(
           contractAddress,
           BooksTrackerABI.abi,
           newSigner
         );
-        const _walletAddress = await newSigner.getAddress();
-
+  
         setProvider(newProvider);
         setSigner(newSigner);
-        setBooksTrackerContract(newContract);
         setConnected(true);
+        setBooksTrackerContract(newContract);
         setWalletAddress(_walletAddress);
       } catch (err) {
         console.error("Failed to connect wallet", err);
@@ -54,49 +61,101 @@ export default function Home() {
     }
   }
 
-  // Function to create a person
-  const handleCreatePerson = async () => {
-    if (!booksTrackerContract) return;
-    try {
-      const tx = await booksTrackerContract.createPerson(
-        personName,
-        parseInt(personGenres)
-      );
-      await tx.wait();
-      console.log("Person created:", tx);
-    } catch (err) {
-      console.error("Failed to create person", err);
-    }
-  };
+ // Function to create a person
+// Function to create a person
+const handleCreatePerson = async () => {
+  if (!booksTrackerContract) return;
+  setLoadingCreatePerson(true); // Show loader
+  try {
+    const tx = await booksTrackerContract.connect(signer).createPerson(personName, parseInt(personGenres));
+    await tx.wait();
+    console.log("Person created:", tx);
+    // Fetch the updated list of persons after adding a person
+    const updatedPersons = await fetchPersons();
+    setPersons(updatedPersons);
+  } catch (err) {
+    console.error("Failed to create person", err);
+  } finally {
+    setLoadingCreatePerson(false); // Hide loader
+  }
+};
+
 
   // Function to create a book
   const handleCreateBook = async () => {
     if (!booksTrackerContract) return;
+    setLoadingCreateBook(true); // Show loader
     try {
-      const tx = await booksTrackerContract.createBook(
-        bookTitle,
-        bookAuthor,
-        bookPerson
-      );
+      const tx = await booksTrackerContract.connect(signer).createBook(bookTitle, bookAuthor, bookPerson);
       await tx.wait();
       console.log("Book created:", tx);
     } catch (err) {
       console.error("Failed to create book", err);
+    } finally {
+      setLoadingCreateBook(false); // Hide loader
     }
   };
 
   // Function to get books read by a person
   const handleGetBooksReadByPerson = async () => {
     if (!booksTrackerContract) return;
+    setLoadingGetBooks(true); // Show loader
     try {
       const books = await booksTrackerContract.getBooksReadByPerson(user);
       setBooksRead(books);
       console.log("Books read by person:", books);
     } catch (err) {
       console.error("Failed to get books read by person", err);
+    } finally {
+      setLoadingGetBooks(false); // Hide loader
     }
   };
 
+  async function fetchPersons() {
+    try {
+      // Get the contract instance
+      const contract = new ethers.Contract(contractAddress, BooksTrackerABI, provider);
+  
+      // Call the getListOfPeople function
+      const persons = await contract.getListOfPeople();
+  
+      return persons;
+    } catch (err) {
+      console.error("Failed to fetch persons", err);
+      return [];
+    }
+  }
+
+  async function fetchBooks() {
+    try {
+      // Get the contract instance
+      const contract = new ethers.Contract(contractAddress, BooksTrackerABI, provider);
+  
+      // Call the getListOfBooks function
+      const books = await contract.getListOfBooks();
+  
+      return books;
+    } catch (err) {
+      console.error("Failed to fetch books", err);
+      return [];
+    }
+  }
+  
+  useEffect(() => {
+    async function fetchData() {
+      // Fetch persons
+      // Example:
+      const personsData = await fetchPersons();
+      setPersons(personsData);
+
+      // Fetch books
+      // Example:
+      const booksData = await fetchBooks();
+      setBooks(booksData);
+    }
+
+    fetchData();
+  }, []);
   return (
     <Box>
       <Box
@@ -159,10 +218,9 @@ export default function Home() {
               flexDirection: "column",
             }}
           >
-            <Typography>user 1</Typography>
-            <Typography>user 2</Typography>
-            <Typography>user 3</Typography>
-            <Typography>user 4</Typography>
+          {persons.map((person, index) => (
+            <Typography key={index}>{person.name}</Typography>
+          ))}
           </Box>
         </Box>
 
@@ -212,6 +270,7 @@ export default function Home() {
               />
               <Button
                 onClick={handleCreatePerson}
+                disabled={loadingCreatePerson} 
                 sx={{
                   backgroundColor: "#0681bd",
                   p: "8px",
@@ -219,7 +278,7 @@ export default function Home() {
                   mt: "8px",
                 }}
               >
-                Add
+               {loadingCreatePerson ? <CircularProgress size={20} color="inherit" /> : "Add"}
               </Button>
             </Box>
 
@@ -252,6 +311,7 @@ export default function Home() {
               />
               <Button
                 onClick={handleCreateBook}
+                disabled={loadingCreateBook} 
                 sx={{
                   backgroundColor: "#0681bd",
                   p: "8px",
@@ -259,7 +319,7 @@ export default function Home() {
                   mt: "8px",
                 }}
               >
-                Add
+               {loadingCreateBook? <CircularProgress size={20} color="inherit" /> : "Add"}
               </Button>
             </Box>
           </Box>
@@ -292,10 +352,9 @@ export default function Home() {
               flexDirection: "column",
             }}
           >
-            <Typography>book 1</Typography>
-            <Typography>book 2</Typography>
-            <Typography>book 3</Typography>
-            <Typography>book 4</Typography>
+            {books.map((book, index) => (
+            <Typography key={index}>{book.title}</Typography>
+          ))}
           </Box>
         </Box>
       </Box>
@@ -313,17 +372,22 @@ export default function Home() {
             width: "60%",
             height: "300px",
             flexDirection: "column",
+            color: "#fff", // Apply color to the entire box
           }}
         >
-          <Typography sx={{ fontSize: "28px" }}>Susan Sunan</Typography>
           <Typography sx={{ fontSize: "20px" }}>Books Read:</Typography>
           <TextField
             value={user}
             onChange={(e) => setUser(e.target.value)}
             placeholder="Enter user name"
+            InputProps={{
+              // Apply color to the input text
+              style: { color: "#fff" },
+            }}
           />
           <Button
             onClick={handleGetBooksReadByPerson}
+            disabled={loadingGetBooks} 
             sx={{
               backgroundColor: "#0681bd",
               p: "8px",
@@ -331,7 +395,7 @@ export default function Home() {
               mt: "8px",
             }}
           >
-            Get Books
+            {loadingGetBooks ? <CircularProgress size={20} color="white" /> : "Get Books"}
           </Button>
           {booksRead.map((book, index) => (
             <Typography key={index}>{book}</Typography>
