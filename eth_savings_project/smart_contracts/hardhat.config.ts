@@ -3,14 +3,22 @@ import "@nomicfoundation/hardhat-toolbox";
 
 require('dotenv').config();
 
-// Add the following information after the "networks" configuration of the HardhatUserConfig
 const config: HardhatUserConfig = {
+
   solidity: "0.8.18",
+  networks: {
+    // for testnet
+    'lisk-sepolia': {
+      url: 'https://rpc.sepolia-api.lisk.com',
+      accounts: [process.env.WALLET_KEY as string],
+      gasPrice: 1000000000,
+    },
+  },
   // Hardhat expects etherscan here, even if you're using Blockscout.
   etherscan: {
     // Use "123" as a placeholder, because Blockscout doesn't need a real API key, and Hardhat will complain if this property isn't set.
     apiKey: {
-      "lisk-sepolia": "123"
+      "lisk-sepolia": "1AT3KKRJAWAJSKGCMRW1HAN2T4EA9387B7"
     },
     customChains: [
       {
@@ -31,3 +39,4 @@ const config: HardhatUserConfig = {
 export default config;
 
 // npx hardhat verify --network lisk-sepolia <deployed address>
+// npx hardhat run scripts/deploy.ts --network lisk-sepolia
