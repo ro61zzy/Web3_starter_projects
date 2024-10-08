@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { Box, Button, CircularProgress, TextField, Typography } from "@mui/material";
+import React, { useState, useEffect, useRef } from "react";
+import { Box, Button, TextField, Typography, CircularProgress } from "@mui/material";
 import { ethers } from "ethers";
 import BooksTrackerABI from "../../../smart-contracts/out/BooksTracker.sol/BooksTracker.json";
 
-const contractAddress = "0xf10b83ee26f2e0f0b68c40d5380a775846c0598d";
+const contractAddress = "0xF10b83EE26F2e0f0B68c40d5380a775846c0598D";
 
 export default function Home() {
   const [user, setUser] = useState("");
@@ -18,14 +18,35 @@ export default function Home() {
   const [provider, setProvider] = useState(null);
   const [signer, setSigner] = useState(null);
   const [booksTrackerContract, setBooksTrackerContract] = useState(null);
+  const [persons, setPersons] = useState([]);
+  const [books, setBooks] = useState([]);
   const [loadingCreatePerson, setLoadingCreatePerson] = useState(false);
   const [loadingCreateBook, setLoadingCreateBook] = useState(false);
   const [loadingGetBooks, setLoadingGetBooks] = useState(false);
-  const [persons, setPersons] = useState([]);
-  const [books, setBooks] = useState([]);
+  const listenersAddedRef = useRef(false);
 
+  useEffect(() => {
+    if (booksTrackerContract && !listenersAddedRef.current) {
+      const personCreatedListener = (name, genres) => {
+        setPersons((prevPersons) => [...new Set([...prevPersons, { name, genres }])]);
+      };
 
-  // Function to connect/disconnect the wallet
+      const bookCreatedListener = (title, author) => {
+        setBooks((prevBooks) => [...new Set([...prevBooks, { title, author }])]);
+      };
+
+      booksTrackerContract.on("PersonCreated", personCreatedListener);
+      booksTrackerContract.on("BookCreated", bookCreatedListener);
+
+      listenersAddedRef.current = true;
+
+      return () => {
+        booksTrackerContract.off("PersonCreated", personCreatedListener);
+        booksTrackerContract.off("BookCreated", bookCreatedListener);
+      };
+    }
+  }, [booksTrackerContract]);
+
   async function connectWallet() {
     if (!connected) {
       if (!window.ethereum) {
@@ -34,20 +55,19 @@ export default function Home() {
       }
       try {
         const newProvider = new ethers.BrowserProvider(window.ethereum);
-        await window.ethereum.request({ method: "eth_requestAccounts" });
+        await newProvider.send("eth_requestAccounts", []);
         const newSigner = await newProvider.getSigner();
-        const _walletAddress = await newSigner.getAddress();
-
         const newContract = new ethers.Contract(
           contractAddress,
           BooksTrackerABI.abi,
           newSigner
         );
-  
+        const _walletAddress = await newSigner.getAddress();
+
         setProvider(newProvider);
         setSigner(newSigner);
-        setConnected(true);
         setBooksTrackerContract(newContract);
+        setConnected(true);
         setWalletAddress(_walletAddress);
       } catch (err) {
         console.error("Failed to connect wallet", err);
@@ -58,48 +78,48 @@ export default function Home() {
       setProvider(null);
       setSigner(null);
       setBooksTrackerContract(null);
+      listenersAddedRef.current = false;
     }
   }
 
- // Function to create a person
-// Function to create a person
-const handleCreatePerson = async () => {
-  if (!booksTrackerContract) return;
-  setLoadingCreatePerson(true); // Show loader
-  try {
-    const tx = await booksTrackerContract.connect(signer).createPerson(personName, parseInt(personGenres));
-    await tx.wait();
-    console.log("Person created:", tx);
-    // Fetch the updated list of persons after adding a person
-    const updatedPersons = await fetchPersons();
-    setPersons(updatedPersons);
-  } catch (err) {
-    console.error("Failed to create person", err);
-  } finally {
-    setLoadingCreatePerson(false); // Hide loader
-  }
-};
+  const handleCreatePerson = async () => {
+    if (!booksTrackerContract) return;
+    setLoadingCreatePerson(true);
+    try {
+      const tx = await booksTrackerContract.createPerson(
+        personName,
+        parseInt(personGenres)
+      );
+      await tx.wait();
+      console.log("Person created:", tx);
+    } catch (err) {
+      console.error("Failed to create person", err);
+    } finally {
+      setLoadingCreatePerson(false);
+    }
+  };
 
-
-  // Function to create a book
   const handleCreateBook = async () => {
     if (!booksTrackerContract) return;
-    setLoadingCreateBook(true); // Show loader
+    setLoadingCreateBook(true);
     try {
-      const tx = await booksTrackerContract.connect(signer).createBook(bookTitle, bookAuthor, bookPerson);
+      const tx = await booksTrackerContract.createBook(
+        bookTitle,
+        bookAuthor,
+        bookPerson
+      );
       await tx.wait();
       console.log("Book created:", tx);
     } catch (err) {
       console.error("Failed to create book", err);
     } finally {
-      setLoadingCreateBook(false); // Hide loader
+      setLoadingCreateBook(false);
     }
   };
 
-  // Function to get books read by a person
   const handleGetBooksReadByPerson = async () => {
     if (!booksTrackerContract) return;
-    setLoadingGetBooks(true); // Show loader
+    setLoadingGetBooks(true);
     try {
       const books = await booksTrackerContract.getBooksReadByPerson(user);
       setBooksRead(books);
@@ -107,46 +127,9 @@ const handleCreatePerson = async () => {
     } catch (err) {
       console.error("Failed to get books read by person", err);
     } finally {
-      setLoadingGetBooks(false); // Hide loader
+      setLoadingGetBooks(false);
     }
   };
-
-// Fetch initial data
-useEffect(() => {
-  const fetchData = async () => {
-    if (booksTrackerContract) {
-      const personsData = await booksTrackerContract?.getListOfPeople();
-      console.log("wait wait Fetched persons:", personsData);
-      setPersons(personsData);
-      const booksData = await booksTrackerContract?.getListOfBooks();
-      setBooks(booksData);
-    }
-  };
-
-  fetchData();
-}, [booksTrackerContract]);
-
-// Listen for events
-useEffect(() => {
-  if (booksTrackerContract) {
-    const handlePersonCreated = (name, genres) => {
-      setPersons(prev => [...prev, { name, genres }]);
-    };
-
-    const handleBookCreated = (title, author) => {
-      setBooks(prev => [...prev, { title, author }]);
-    };
-
-    booksTrackerContract.on("PersonCreated", handlePersonCreated);
-    booksTrackerContract.on("BookCreated", handleBookCreated);
-
-    return () => {
-      booksTrackerContract.off("PersonCreated", handlePersonCreated);
-      booksTrackerContract.off("BookCreated", handleBookCreated);
-    };
-  }
-}, [booksTrackerContract]);
-
 
   return (
     <Box>
@@ -210,9 +193,9 @@ useEffect(() => {
               flexDirection: "column",
             }}
           >
-          {persons.map((person, index) => (
-            <Typography key={index}>{person.name}</Typography>
-          ))}
+            {persons.map((person, index) => (
+              <Typography key={index}>{person.name}</Typography>
+            ))}
           </Box>
         </Box>
 
@@ -262,7 +245,7 @@ useEffect(() => {
               />
               <Button
                 onClick={handleCreatePerson}
-                disabled={loadingCreatePerson} 
+                disabled={loadingCreatePerson}
                 sx={{
                   backgroundColor: "#0681bd",
                   p: "8px",
@@ -270,7 +253,11 @@ useEffect(() => {
                   mt: "8px",
                 }}
               >
-               {loadingCreatePerson ? <CircularProgress size={20} color="inherit" /> : "Add"}
+                {loadingCreatePerson ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Add"
+                )}
               </Button>
             </Box>
 
@@ -303,7 +290,7 @@ useEffect(() => {
               />
               <Button
                 onClick={handleCreateBook}
-                disabled={loadingCreateBook} 
+                disabled={loadingCreateBook}
                 sx={{
                   backgroundColor: "#0681bd",
                   p: "8px",
@@ -311,7 +298,11 @@ useEffect(() => {
                   mt: "8px",
                 }}
               >
-               {loadingCreateBook? <CircularProgress size={20} color="inherit" /> : "Add"}
+                {loadingCreateBook ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  "Add"
+                )}
               </Button>
             </Box>
           </Box>
@@ -345,8 +336,8 @@ useEffect(() => {
             }}
           >
             {books.map((book, index) => (
-            <Typography key={index}>{book.title}</Typography>
-          ))}
+              <Typography key={index}>{book.title}</Typography>
+            ))}
           </Box>
         </Box>
       </Box>
@@ -364,7 +355,6 @@ useEffect(() => {
             width: "60%",
             height: "300px",
             flexDirection: "column",
-            color: "#fff", // Apply color to the entire box
           }}
         >
           <Typography sx={{ fontSize: "20px" }}>Books Read:</Typography>
@@ -373,13 +363,12 @@ useEffect(() => {
             onChange={(e) => setUser(e.target.value)}
             placeholder="Enter user name"
             InputProps={{
-              // Apply color to the input text
               style: { color: "#fff" },
             }}
           />
           <Button
             onClick={handleGetBooksReadByPerson}
-            disabled={loadingGetBooks} 
+            disabled={loadingGetBooks}
             sx={{
               backgroundColor: "#0681bd",
               p: "8px",
@@ -387,7 +376,11 @@ useEffect(() => {
               mt: "8px",
             }}
           >
-            {loadingGetBooks ? <CircularProgress size={20} color="white" /> : "Get Books"}
+            {/* {loadingGetBooks ? (
+              <CircularProgress size={20} color="white" />
+            ) : ( */}
+              "Get Books"
+            {/* )} */}
           </Button>
           {booksRead.map((book, index) => (
             <Typography key={index}>{book}</Typography>
