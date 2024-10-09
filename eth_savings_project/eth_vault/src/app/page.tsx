@@ -8,20 +8,26 @@ export default function Home() {
   const [userBalance, setUserBalance] = useState<string | null>(null);
   const [inputAmount, setInputAmount] = useState<string>('');
   const [contractBalance, setContractBalance] = useState<string>('');
+  const [walletConnected, setWalletConnected] = useState(false);
+  const [walletAddress, setWalletAddress] = useState<string | null>(null);
+
 
   // ABI of the EthVault contract
-  const abi = [
-    "function deposit() payable external",
-    "function withdraw(uint256 amount) external",
-    "function getBalance() external view returns (uint256)"
-  ];
+  const abi = require('../../../smart_contracts/artifacts/contracts/EthVault.sol/EthVault.json').abi;
 
-  useEffect(() => {
+  async function connectWallet() {
     if (typeof window.ethereum !== 'undefined') {
-      // Prompt user to connect to their wallet if needed
-      window.ethereum.request({ method: 'eth_requestAccounts' });
+      try {
+        const [account] = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        setWalletAddress(account);
+        setWalletConnected(true);
+      } catch (error) {
+        console.error('Wallet connection error:', error);
+      }
+    } else {
+      alert('MetaMask is not installed!');
     }
-  }, []);
+  }
 
   // Function to fetch the user's balance in the contract
   async function fetchUserBalance() {
@@ -74,6 +80,11 @@ export default function Home() {
   return (
     <div style={{ padding: '20px' }}>
       <h1>ETH Vault</h1>
+      <button
+            onClick={connectWallet}
+            className="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-700 transition">
+            Connect Wallet
+          </button>
       <div>
         <button onClick={fetchUserBalance}>Get My Balance</button>
         {userBalance !== null && <p>My Contract Balance: {userBalance} ETH</p>}
