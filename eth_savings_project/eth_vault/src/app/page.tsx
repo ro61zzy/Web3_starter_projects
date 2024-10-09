@@ -2,18 +2,20 @@
 
 import { useState } from "react";
 import { ethers } from "ethers";
-import "./Home.css"; // Include the CSS file
+import "./Home.css";
 
 export default function Home() {
   const [contractAddress] = useState<string>(
     "0x99cb017E19782Dd31772fd0B713e8ED722a83fb2"
-  ); // Replace with your deployed contract address
+  ); 
   const [userBalance, setUserBalance] = useState<string | null>(null);
   const [inputAmount, setInputAmount] = useState<string>("");
   const [walletConnected, setWalletConnected] = useState(false);
   const [walletAddress, setWalletAddress] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState<boolean>(false);
 
-  // ABI of the EthVault contract
+
   const abi = require("../../../smart_contracts/artifacts/contracts/EthVault.sol/EthVault.json").abi;
 
   async function connectWallet() {
@@ -24,60 +26,80 @@ export default function Home() {
         });
         setWalletAddress(account);
         setWalletConnected(true);
+        setMessage("Wallet connected successfully!");
       } catch (error) {
         console.error("Wallet connection error:", error);
+        setMessage("Failed to connect wallet.");
       }
     } else {
       alert("MetaMask is not installed!");
     }
   }
 
-  // Function to fetch the user's balance in the contract
+  
   async function fetchUserBalance() {
     if (typeof window.ethereum !== "undefined") {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const contract = new ethers.Contract(contractAddress, abi, provider);
-      const balance: ethers.BigNumber = await contract.getBalance();
-      setUserBalance(ethers.formatEther(balance));
+      setIsProcessing(true); 
+      try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const contract = new ethers.Contract(contractAddress, abi, provider);
+        const balance: ethers.BigNumber = await contract.getBalance();
+        setUserBalance(ethers.formatEther(balance)); 
+        setMessage("Balance fetched successfully!");
+      } catch (err) {
+        console.error("Error fetching balance:", err);
+        setMessage("Failed to fetch balance.");
+      } finally {
+        setIsProcessing(false);
+      }
     }
   }
 
-  // Function to deposit ETH into the contract
   async function depositEth() {
     if (!inputAmount) return alert("Please enter a valid amount of ETH");
 
     if (typeof window.ethereum !== "undefined") {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, abi, signer);
+      setIsProcessing(true);
       try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
         const tx = await contract.deposit({
           value: ethers.parseEther(inputAmount),
         });
         await tx.wait();
         setInputAmount("");
-        fetchUserBalance(); // Update balance after deposit
+        fetchUserBalance(); 
+        setMessage("Deposit successful!");
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error during deposit:", err);
+        setMessage("Deposit failed. Please try again.");
+      } finally {
+        setIsProcessing(false); 
       }
     }
   }
 
-  // Function to withdraw ETH from the contract
+
   async function withdrawEth() {
     if (!inputAmount) return alert("Please enter a valid amount to withdraw");
 
     if (typeof window.ethereum !== "undefined") {
-      const provider = new ethers.BrowserProvider(window.ethereum);
-      const signer = await provider.getSigner();
-      const contract = new ethers.Contract(contractAddress, abi, signer);
+      setIsProcessing(true); 
       try {
+        const provider = new ethers.BrowserProvider(window.ethereum);
+        const signer = await provider.getSigner();
+        const contract = new ethers.Contract(contractAddress, abi, signer);
         const tx = await contract.withdraw(ethers.parseEther(inputAmount));
         await tx.wait();
         setInputAmount("");
-        fetchUserBalance(); // Update balance after withdrawal
+        fetchUserBalance(); 
+        setMessage("Withdrawal successful!");
       } catch (err) {
-        console.error("Error:", err);
+        console.error("Error during withdrawal:", err);
+        setMessage("Withdrawal failed. Please try again.");
+      } finally {
+        setIsProcessing(false); 
       }
     }
   }
@@ -100,10 +122,17 @@ export default function Home() {
           <p className="wallet-info">Connected: {walletAddress}</p>
         )}
 
+        {/* Status Message */}
+        {message && <p className="message">{message}</p>}
+
         {walletConnected && (
           <div className="actions">
-            <button className="btn" onClick={fetchUserBalance}>
-              Get My Balance
+            <button
+              className="btn"
+              onClick={fetchUserBalance}
+              disabled={isProcessing}
+            >
+              {isProcessing ? "Fetching Balance..." : "Get My Balance"}
             </button>
             {userBalance !== null && (
               <p className="balance">My Contract Balance: {userBalance} ETH</p>
@@ -116,11 +145,19 @@ export default function Home() {
               className="input"
             />
             <div className="btn-group">
-              <button className="btn" onClick={depositEth}>
-                Deposit ETH
+              <button
+                className="btn"
+                onClick={depositEth}
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Depositing..." : "Deposit ETH"}
               </button>
-              <button className="btn withdraw-btn" onClick={withdrawEth}>
-                Withdraw ETH
+              <button
+                className="btn withdraw-btn"
+                onClick={withdrawEth}
+                disabled={isProcessing}
+              >
+                {isProcessing ? "Withdrawing..." : "Withdraw ETH"}
               </button>
             </div>
           </div>
