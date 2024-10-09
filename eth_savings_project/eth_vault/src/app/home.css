@@ -1,0 +1,128 @@
+/* Base Styling */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+  
+  body {
+    font-family: 'Arial', sans-serif;
+    background: linear-gradient(to bottom right, #00c6ff, #0072ff);
+    color: #fff;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    overflow: hidden;
+  }
+  
+  /* Container */
+  .container {
+    background: #ffffff;
+    padding: 30px;
+    max-width: 600px;
+    width: 100%;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+    color: #333;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .container:hover {
+    transform: scale(1.02);
+  }
+  
+  .title {
+    font-size: 2.8rem;
+    font-weight: bold;
+    margin-bottom: 10px;
+    color: #0072ff;
+  }
+  
+  .description {
+    font-size: 1.2rem;
+    margin-bottom: 20px;
+  }
+  
+  .card {
+    padding: 20px;
+    border: 2px solid #0072ff;
+    border-radius: 10px;
+    background-color: #f9f9f9;
+  }
+  
+  /* Wallet Info */
+  .wallet-info {
+    font-size: 1.1rem;
+    color: #007bff;
+    margin-bottom: 20px;
+    word-break: break-word;
+  }
+  
+  .message {
+    font-size: 1rem;
+    color: #28a745;
+    margin-bottom: 15px;
+    font-weight: bold;
+  }
+  
+  /* Balance */
+  .balance {
+    margin-top: 10px;
+    font-weight: bold;
+    font-size: 1.2rem;
+    color: #333;
+  }
+  
+  /* Buttons */
+  .btn {
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    background-color: #007bff;
+    color: #fff;
+    cursor: pointer;
+    font-size: 1rem;
+    margin: 10px;
+    transition: all 0.3s ease-in-out;
+  }
+  
+  .connect-btn {
+    background-color: #28a745;
+  }
+  
+  .connect-btn:hover,
+  .btn:hover {
+    background-color: #0056b3;
+  }
+  
+  .withdraw-btn {
+    background-color: #dc3545;
+  }
+  
+  .withdraw-btn:hover {
+    background-color: #c82333;
+  }
+  
+  .btn[disabled] {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  /* Input */
+  .input {
+    padding: 10px;
+    margin-top: 20px;
+    width: 100%;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 1rem;
+  }
+  
+  .btn-group {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+  }
+  
