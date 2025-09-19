@@ -1,0 +1,24 @@
+.kvass-container {
+    padding: 20px;
+    background-color: #712e05;
+    color: brown;
+  }
+  
+  .top-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+  }
+  
+  .kvass-container h4 {
+    margin-bottom: 20px;
+  }
+  
+  .kvass-container .MuiButton-root {
+    margin-top: 10px;
+  }
+  
+  .kvass-container .MuiTextField-root {
+    margin-top: 15px;
+  }
+  
